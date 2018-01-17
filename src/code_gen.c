@@ -27,6 +27,7 @@ int if_scope = 0;
 
 void gen_program_main(){
     fprintf(fp , ".method public static main([Ljava/lang/String;)V\n");
+    fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n\tinvokestatic foo/vinit()V\n");
     return;
 }
 /********** find symbol entry within function or procedure ***************/
@@ -54,7 +55,7 @@ void gen_program_end(){
     else if(function_type == type_real)
         fprintf(fp , "\tfreturn\n");
     //// string return 
-	fprintf(fp, ".end method\n");
+	fprintf(fp, ".end method\n\n");
     function_type = type_void;
     return;
 }
@@ -89,7 +90,7 @@ void gen_global_var(char * name , enum StdType type , int dim , enum StdType  ar
 }
 void gen_vinit(){
 ///////// initiate global variables /////////
-    fprintf(fp , "\n.method public static vinit()V\n.limit locals 100\n.limit stack 100\n");
+    fprintf(fp , "\n.method public static vinit()V\n\t.limit locals 100\n\t.limit stack 100\n");
     for(int i = 0 ; i<SymbolTable.size ;i++){
         if(SymbolTable.entries[i].level !=0)
             break;
@@ -128,6 +129,9 @@ void travel_node(struct node * node){
         case NODE_BEGIN:{
             break;
         }
+        /******************
+        parameter is not finished yet
+        ********************/
         case NODE_FUN_HEAD:{
             fprintf(fp , ".method public static ");
             struct node * function_name = nthChild(1 , node);
@@ -147,9 +151,19 @@ void travel_node(struct node * node){
                 fprintf(fp , ")S\n");
                 function_type = type_string;
             }
+            fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
             break;
         }
         case NODE_PRO_HEAD:{
+            fprintf(fp , ".method public static ");
+            struct node * procedure_name = nthChild(1 , node);
+            fprintf(fp , "%s(" , procedure_name->string);
+        /*****************
+        parameter is not finished yet
+        *****************/
+
+            fprintf(fp , ")\n");
+            fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
             break;
         }
         case NODE_END:{

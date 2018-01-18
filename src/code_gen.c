@@ -18,10 +18,12 @@ int stack_top = 0;
 #define type_real 2
 #define type_string 3
 
+int left = 0 ;
+int right = 0;
 int function_scope = 0;
 int function_type = 0;
 int procedure_scope = 0;
-int scope_check = 0;
+int scope_check_gen = 0;
 int while_scope = 0;
 int if_scope = 0;
 
@@ -107,10 +109,12 @@ string return type is not finished
 void gen_program_end(){
     if(function_type == type_void)
         fprintf(fp, "\treturn\n");
-    else if(function_type == type_int)
+    else if(function_type == type_int){
         fprintf(fp , "\tireturn\n");
-    else if(function_type == type_real)
+    }
+    else if(function_type == type_real){
         fprintf(fp , "\tfreturn\n");
+    }
     //// string return 
 	fprintf(fp, ".end method\n\n");
     function_type = type_void;
@@ -182,7 +186,7 @@ void travel_node(struct node * node){
     /************* main() starts here ***********/
     if(node->lsibling->nodeType == NODE_SUB_DECLS){
         gen_program_main();
-        scope_check = 1; 
+        scope_check_gen = 1; 
     }
     printf("Here %d\n" ,node->nodeType );
     switch(node->nodeType) {
@@ -289,16 +293,47 @@ void travel_node(struct node * node){
         }
         case NODE_SYM_REF:{
             struct SymTableEntry *entry;
-            if(scope_check==0)
+            if(scope_check_gen==0)
                 entry = findSymbol_in_global(node->string);
             else 
                 entry = findSymbol_fun_pro_var(node->string);
 
-            if(entry == 0) {
-                printf("[Error ] undeclared variable %s and at line %d\n", node->string , node->lineCount);
-                //check = 0;
-                return;
+            if(entry->level == 1){
+                if(left == 1){
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tistore %d\n" , entry->var_num);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tfstore %d\n" , entry->var_num);
+                    /////string , array  not finished
+                
+                }
+                else {
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tiload %d\n" , entry->var_num);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tfload %d\n" , entry->var_num);
+                    ///// string  , array not finished
+                }  
             }
+            else {
+                if(left == 1){
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tputstatic foo/%s I\n" , entry->name);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tputstatic foo/%s F\n" , entry->name);
+                    /////string , array  not finished
+                
+                }
+                else {
+                    //fprintf(fp , "getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tgetstatic foo/%s I\n" , entry->name);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tgetstatic foo/%s F\n" , entry->name);
+                    ///// string  , array not finished
+                }  
+            }
+
             return;
         }
         case NODE_OP:{
@@ -406,18 +441,26 @@ void travel_node(struct node * node){
             return;
         }
         case NODE_INT:{
-            fprintf(fp , "sipush %d\n" , node->iValue);
+            fprintf(fp , "\tsipush %d\n" , node->iValue);
             return;
         }
         case NODE_REAL:{
-            fprintf(fp , "ldc %f\n" , node->rValue);
+            fprintf(fp , "\tldc %f\n" , node->rValue);
             return;
         }
         case NODE_STRING_v:{
-            fprintf(fp , "ldc %s\n" , node->string);
+            fprintf(fp , "\tldc %s\n" , node->string);
             return;
         }
         case NODE_ASSIGN_STMT:{
+            struct node * child1 = nthChild(1 , node);
+            struct node * child2 = nthChild(2 , node);
+            right = 1;
+            left = 0;
+            travel_node(child2);
+            right = 0;
+            left =1;
+            travel_node(child1);
             return;
         }
     }

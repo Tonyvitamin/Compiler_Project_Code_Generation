@@ -21,32 +21,89 @@ int stack_top = 0;
 int function_scope = 0;
 int function_type = 0;
 int procedure_scope = 0;
-int main_scope = 0;
+int scope_check = 0;
 int while_scope = 0;
 int if_scope = 0;
+
+void fill_param(struct param_list * param){
+    struct param_list * tmp = param;
+    int num = 1;
+    while(tmp->next_param != tmp){
+        num++;
+        tmp = tmp->next_param;
+    }
+    tmp = param;
+    while(num > 0){
+        for(int i = 0 ; i<num ;i++){
+            tmp = tmp->next_param;
+        }
+        if(tmp->type == TypeInt)
+            fprintf(fp , "I");
+        else if(tmp->type == TypeString)
+            fprintf(fp , "S");
+        else if(tmp->type == TypeReal)
+            fprintf(fp , "F");
+        tmp = param;
+        num--;
+    }
+}
+
 
 void gen_program_main(){
     fprintf(fp , ".method public static main([Ljava/lang/String;)V\n");
     fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n\tinvokestatic foo/vinit()V\n");
     return;
 }
+
+/******** no handle recursive case *********/
+
 /********** find symbol entry within function or procedure ***************/
 struct SymTableEntry  * findSymbol_in_function_procedure(char * s){
-
+    for(int i =  SymbolTable.size-1 ; i >= 0 ; i--){
+        struct SymTableEntry * it = &SymbolTable.entries[i];
+        if(it->level == 0)
+            break;
+        if(strcmp(s, it->name) == 0 && it->level <= 1){
+                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            return it;
+        }
+    }
+    for(int i = 0 ; i < SymbolTable.size  ; i++){
+        struct SymTableEntry * it = &SymbolTable.entries[i];
+        if(it->level == 1)
+            break;
+        if(strcmp(s, it->name) == 0 && it->level == 0){
+                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            return it;
+        }
+    }
+    return 0;
 }
 /********** find symbol entry within main ***************/
 struct SymTableEntry  * findSymbol_in_main(char * s){
-
+    for(int i = 0 ; i < SymbolTable.size  ; i++){
+        struct SymTableEntry * it = &SymbolTable.entries[i];
+        if(strcmp(s, it->name) == 0 && it->level == 0){
+                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            return it;
+        }
+    }
+    return 0;
 }
+
+/// done ///
 /********** generate start of xxx.j *********/
 void gen_program_start(){
     printf("start\n");
     fprintf(fp , ".class public foo\n");
-    fprintf(fp , ".super java/lang/object\n\n");
+    fprintf(fp , ".super java/lang/Object\n\n");
     //fprintf(fp, ".field public static _sc Ljava/util/Scanner;\n ");
     return;
 }
 /********** generate end of xxx.j ***********/
+/*********
+string return type is not finished
+***********/
 void gen_program_end(){
     if(function_type == type_void)
         fprintf(fp, "\treturn\n");
@@ -59,6 +116,8 @@ void gen_program_end(){
     function_type = type_void;
     return;
 }
+
+///// done ////
 /********* generate global variable *********/
 void gen_global_var(char * name , enum StdType type , int dim , enum StdType  array_type){
     printf("global var\n");
@@ -88,8 +147,11 @@ void gen_global_var(char * name , enum StdType type , int dim , enum StdType  ar
     }
 
 }
+/********* generate init function *********/
+/*********
+array init is not finished yet
+***********/
 void gen_vinit(){
-///////// initiate global variables /////////
     fprintf(fp , "\n.method public static vinit()V\n\t.limit locals 100\n\t.limit stack 100\n");
     for(int i = 0 ; i<SymbolTable.size ;i++){
         if(SymbolTable.entries[i].level !=0)
@@ -106,7 +168,7 @@ void gen_vinit(){
             fprintf(fp , "\tsipush 0\n");
             fprintf(fp , "\tputstatic foo/%s S\n" , SymbolTable.entries[i].name );
         }
-        else if(SymbolTable.entries[i].type == TypeArray){//to be continued
+        else if(SymbolTable.entries[i].type == TypeArray){
 
         }
     }
@@ -116,10 +178,12 @@ void gen_vinit(){
 }
 /********** DFS to create an java bytecode ***********/
 void travel_node(struct node * node){
+
+    /************* main() starts here ***********/
     if(node->lsibling->nodeType == NODE_SUB_DECLS){
         gen_program_main();
+        scope_check = 1; 
     }
-//        scope=1;
     printf("Here %d\n" ,node->nodeType );
     switch(node->nodeType) {
         case NODE_SUB_DECLS:{
@@ -135,9 +199,15 @@ void travel_node(struct node * node){
         case NODE_FUN_HEAD:{
             fprintf(fp , ".method public static ");
             struct node * function_name = nthChild(1 , node);
+            struct node * parameter = nthChild(2 , node);
             struct node * type_name = nthChild(3 , node);
             fprintf(fp , "%s(" , function_name->string);
 
+            if(parameter->nodeType != NODE_lambda){
+                struct SymTableEntry * function = findSymbol_in_function_procedure(function_name->string);
+                struct param_list * param = function->function->param;
+                fill_param(param);
+            }
 
             if (type_name->nodeType==NODE_TYPE_INT){
                 fprintf(fp , ")I\n");
@@ -161,6 +231,7 @@ void travel_node(struct node * node){
         /*****************
         parameter is not finished yet
         *****************/
+            if(node)
 
             fprintf(fp , ")\n");
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
@@ -217,6 +288,17 @@ void travel_node(struct node * node){
             }
         }
         case NODE_SYM_REF:{
+            struct SymTableEntry *entry;
+            if(scope_check==0)
+                entry = findSymbol_in_global(node->string);
+            else 
+                entry = findSymbol_fun_pro_var(node->string);
+
+            if(entry == 0) {
+                printf("[Error ] undeclared variable %s and at line %d\n", node->string , node->lineCount);
+                //check = 0;
+                return;
+            }
             return;
         }
         case NODE_OP:{

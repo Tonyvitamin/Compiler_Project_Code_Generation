@@ -239,11 +239,14 @@ void travel_node(struct node * node){
         case NODE_PRO_HEAD:{
             fprintf(fp , ".method public static ");
             struct node * procedure_name = nthChild(1 , node);
+            struct node * parameter = nthChild(2 , node);
             fprintf(fp , "%s(" , procedure_name->string);
-        /*****************
-        parameter is not finished yet
-        *****************/
-            if(node)
+
+            if(parameter->nodeType != NODE_lambda){
+                struct SymTableEntry * procedure = findSymbol_in_function_procedure(procedure_name->string);
+                struct param_list * param = procedure->function->param;
+                fill_param(param);
+            }
 
             fprintf(fp , ")\n");
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
@@ -338,6 +341,30 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tgetstatic foo/%s I\n" , entry->name);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tgetstatic foo/%s F\n" , entry->name);
+                    else if(entry->type ==TypeFunction){
+                        ////////////////////
+                        /// load parameter is not finished
+                        ///////////////////
+                        fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
+                        if(entry->function->param != NULL){
+                            fill_param(entry->function->param);
+                        }
+                        if(entry->function->type == TypeInt)
+                            fprintf(fp , ")I\n");
+                        else if(entry->function->type == TypeReal)
+                            fprintf(fp , ")F\n");
+                        else if(entry->function->type == TypeString)
+                            fprintf(fp , ")S\n");
+                        else 
+                            fprintf(fp , ")V\n");
+                    }
+                    else if(entry->type == TypeProcedure){
+                        fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
+                        if(entry->function->param != NULL){
+                            fill_param(entry->function->param);
+                        }
+                            fprintf(fp , ")V\n");
+                    }
                     ///// string  , array not finished
                 }  
             }

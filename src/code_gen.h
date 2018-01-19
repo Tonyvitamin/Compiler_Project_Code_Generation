@@ -14,4 +14,6 @@ void gen_label(struct node * node);
 struct SymTableEntry * findSymbol_in_function_procedure(char * s);
 struct SymTableEntry * findSymbol_in_main(char * s);
 void gen_program_main();
+void init_local_var();
+
 #endif

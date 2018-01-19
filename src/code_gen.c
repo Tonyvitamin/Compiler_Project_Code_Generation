@@ -28,6 +28,34 @@ int scope_check_gen = 0;
 int while_scope = 0;
 int if_scope = 0;
 
+void init_local_var(){
+    int i;
+    for( i =  SymbolTable.size-1 ; i >= 0 ; i--){
+        struct SymTableEntry * it = &SymbolTable.entries[i];
+        if(it->level == 0)
+            break;
+        if(strcmp(function_var, it->name) == 0 && it->level == 1){
+            break;
+        }
+    }
+    while( i<SymbolTable.size && SymbolTable.entries[i].level == 1 ){
+        struct SymTableEntry * tmp = &SymbolTable.entries[i];
+        if(tmp->type == TypeInt){
+            fprintf(fp , "\tldc 0\n" );
+            fprintf(fp , "\tistore %d\n" , tmp->var_num);
+        }
+        else if(tmp->type == TypeReal){
+            fprintf(fp , "\tldc 0.0\n");
+            fprintf(fp , "\tfstore %d\n" , tmp->var_num);
+        }
+        else if(tmp->type == TypeString){
+            fprintf(fp , "\tldc 0\n");
+            fprintf(fp , "\tsstore %d\n" , tmp->var_num);
+        }
+        i++;
+    }
+}
+
 void fill_param(struct param_list * param){
     struct param_list * tmp = param;
     int num = 1;
@@ -35,6 +63,7 @@ void fill_param(struct param_list * param){
         num++;
         tmp = tmp->next_param;
     }
+
     tmp = param;
     while(num > 0){
         for(int i = 0 ; i<num ;i++){
@@ -212,13 +241,15 @@ void travel_node(struct node * node){
             struct node * function_name = nthChild(1 , node);
             struct node * parameter = nthChild(2 , node);
             struct node * type_name = nthChild(3 , node);
-
             fprintf(fp , "%s(" , function_name->string);
             strcpy(function_var , function_name->string);
             if(parameter->nodeType != NODE_lambda){
-                struct SymTableEntry * function = findSymbol_in_function_procedure(function_name->string);
+                struct SymTableEntry * function = findSymbol_in_main(function_name->string);
+
                 struct param_list * param = function->function->param;
                 fill_param(param);
+
+
             }
 
             if (type_name->nodeType==NODE_TYPE_INT){
@@ -244,7 +275,7 @@ void travel_node(struct node * node){
             fprintf(fp , "%s(" , procedure_name->string);
 
             if(parameter->nodeType != NODE_lambda){
-                struct SymTableEntry * procedure = findSymbol_in_function_procedure(procedure_name->string);
+                struct SymTableEntry * procedure = findSymbol_in_main(procedure_name->string);
                 struct param_list * param = procedure->function->param;
                 fill_param(param);
             }
@@ -266,6 +297,7 @@ void travel_node(struct node * node){
             else {
                 if(function_procedure_scope ==1){
                     function_procedure_scope = 0;
+                    init_local_var();
                     return;
                 }
                 struct node * check_declaration = node->child;
@@ -313,7 +345,7 @@ void travel_node(struct node * node){
             if(scope_check_gen==0)
                 entry = findSymbol_in_global(node->string);
             else 
-                entry = findSymbol_fun_pro_var(node->string);
+                entry = findSymbol_in_function_procedure(node->string);
 
             if(entry->level == 1){
                 if(left == 1){
@@ -323,7 +355,10 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tfstore %d\n" , entry->var_num);
                     else if(entry->type == TypeString)
                         fprintf(fp , "\tsstore %d\n" , entry->var_num);
-                    ///// array  not finished
+                    ///// array not finished
+                    else if(entry->type == TypeArray){
+
+                    }
                 
                 }
                 else {
@@ -342,7 +377,9 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tputstatic foo/%s I\n" , entry->name);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tputstatic foo/%s F\n" , entry->name);
-                    /////string , array  not finished
+                    else if(entry->type == TypeString)
+                        fprintf(fp , "\tputstatic foo/%s S\n" , entry->name);
+                    ///// array  not finished
                 
                 }
                 else {
@@ -351,6 +388,8 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tgetstatic foo/%s I\n" , entry->name);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tgetstatic foo/%s F\n" , entry->name);
+                    else if(entry->type == TypeString)
+                        fprintf(fp , "\tgetstatic foo/%s S\n" , entry->name);
                     else if(entry->type ==TypeFunction){
                         ////////////////////
                         /// load parameter is not finished

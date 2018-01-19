@@ -7,6 +7,7 @@ extern FILE * fp;
 extern struct SymTable SymbolTable;
 int scope = 0;
 
+char function_var[20];
 
 int label_count = 0;
 int label_stack[1024];
@@ -110,10 +111,16 @@ void gen_program_end(){
     if(function_type == type_void)
         fprintf(fp, "\treturn\n");
     else if(function_type == type_int){
+        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+        fprintf(fp , "\tiload %d\n" , var->var_num);
         fprintf(fp , "\tireturn\n");
+        *function_var = NULL;
     }
     else if(function_type == type_real){
+        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+        fprintf(fp , "\tfload %d\n" , var->var_num);
         fprintf(fp , "\tfreturn\n");
+        *function_var = NULL;
     }
     //// string return 
 	fprintf(fp, ".end method\n\n");
@@ -205,8 +212,9 @@ void travel_node(struct node * node){
             struct node * function_name = nthChild(1 , node);
             struct node * parameter = nthChild(2 , node);
             struct node * type_name = nthChild(3 , node);
-            fprintf(fp , "%s(" , function_name->string);
 
+            fprintf(fp , "%s(" , function_name->string);
+            strcpy(function_var , function_name->string);
             if(parameter->nodeType != NODE_lambda){
                 struct SymTableEntry * function = findSymbol_in_function_procedure(function_name->string);
                 struct param_list * param = function->function->param;

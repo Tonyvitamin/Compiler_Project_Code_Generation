@@ -75,6 +75,9 @@ void fill_param(struct param_list * param){
             fprintf(fp , "S");
         else if(tmp->type == TypeReal)
             fprintf(fp , "F");
+        else if(tmp->type == TypeArray){
+            
+        }    
         tmp = param;
         num--;
     }
@@ -116,7 +119,7 @@ struct SymTableEntry  * findSymbol_in_main(char * s){
     for(int i = 0 ; i < SymbolTable.size  ; i++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
         if(strcmp(s, it->name) == 0 && it->level == 0){
-                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            printf("%d , %d\n" , it->level , SymbolTable.current_level);
             return it;
         }
     }
@@ -342,8 +345,8 @@ void travel_node(struct node * node){
         }
         case NODE_SYM_REF:{
             struct SymTableEntry *entry;
-            if(scope_check_gen==0)
-                entry = findSymbol_in_global(node->string);
+            if(scope_check_gen==1)
+                entry = findSymbol_in_main(node->string);
             else 
                 entry = findSymbol_in_function_procedure(node->string);
 
@@ -408,6 +411,7 @@ void travel_node(struct node * node){
                             fprintf(fp , ")V\n");
                     }
                     else if(entry->type == TypeProcedure){
+                    
                         fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
                         if(entry->function->param != NULL){
                             fill_param(entry->function->param);

@@ -21,9 +21,9 @@ int stack_top = 0;
 
 int left = 0 ;
 int right = 0;
-int function_scope = 0;
+int function_procedure_scope = 0;
 int function_type = 0;
-int procedure_scope = 0;
+//int procedure_scope = 0;
 int scope_check_gen = 0;
 int while_scope = 0;
 int if_scope = 0;
@@ -234,6 +234,7 @@ void travel_node(struct node * node){
                 function_type = type_string;
             }
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
+            function_procedure_scope = 1;
             break;
         }
         case NODE_PRO_HEAD:{
@@ -250,6 +251,7 @@ void travel_node(struct node * node){
 
             fprintf(fp , ")\n");
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
+            function_procedure_scope = 1; 
             break;
         }
         case NODE_END:{
@@ -262,6 +264,10 @@ void travel_node(struct node * node){
                     return;
         ///////////// declaration ////////////////    
             else {
+                if(function_procedure_scope ==1){
+                    function_procedure_scope = 0;
+                    return;
+                }
                 struct node * check_declaration = node->child;
                 int check_type = 2;
                 int check_node = 1;
@@ -315,7 +321,9 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tistore %d\n" , entry->var_num);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tfstore %d\n" , entry->var_num);
-                    /////string , array  not finished
+                    else if(entry->type == TypeString)
+                        fprintf(fp , "\tsstore %d\n" , entry->var_num);
+                    ///// array  not finished
                 
                 }
                 else {
@@ -323,7 +331,9 @@ void travel_node(struct node * node){
                         fprintf(fp , "\tiload %d\n" , entry->var_num);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tfload %d\n" , entry->var_num);
-                    ///// string  , array not finished
+                    else if(entry->type == TypeString)
+                        fprintf(fp , "\tsload %d\n" , entry->var_num);
+                    ///// array not finished
                 }  
             }
             else {

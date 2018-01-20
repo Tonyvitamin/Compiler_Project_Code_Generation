@@ -528,6 +528,7 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
                     }
                     case OP_GT:{
                         label_count++;
@@ -546,6 +547,8 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
+
                     }
                     case OP_EQ:{
                         label_count++;
@@ -564,6 +567,7 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
                     }
                     case OP_NE:{
                         label_count++;
@@ -582,6 +586,8 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
+
                     }
                     case OP_GE:{
                         label_count++;
@@ -600,6 +606,8 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
+
                     }
                     case OP_LE:{
                         label_count++;
@@ -618,6 +626,8 @@ void travel_node(struct node * node){
                         fprintf(fp , "\ticonst_1\n");
                         fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
                         stack_top--;
+                        return;
+
                     }
                     /*NOT factor
                     case OP_NOT:{

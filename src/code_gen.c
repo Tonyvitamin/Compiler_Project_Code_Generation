@@ -643,10 +643,11 @@ void travel_node(struct node * node){
             label_count++;
             label_stack[stack_top]=label_count;
             fprintf(fp , "\tifeq Lfalse_%d\n" , label_stack[stack_top]);
-            fprintf(fp , "\tgoto Lexit_%d\nLfalse_%d:\n" , label_stack[stack_top] , label_stack[stack_top]);
             travel_node(nthChild(2,node));
-            fprintf(fp , "Lexit_%d:\n" , label_stack[stack_top]);
+            fprintf(fp , "\tgoto Lexit_%d\nLfalse_%d:\n" , label_stack[stack_top] , label_stack[stack_top]);
             travel_node(nthChild(3,node));
+
+            fprintf(fp , "Lexit_%d:\n" , label_stack[stack_top]);
             stack_top--;
             return;
         }

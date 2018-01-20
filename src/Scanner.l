@@ -174,8 +174,7 @@ NQUOTE [^']
         return(COMMA);
 }
 
-[0-9]+  |
-"-"[0-9]+                 {
+[0-9]+             {
       yylval.node_t = newTokenNode(DIGSEQ,lineCount);     
       yylval.node_t->valueValid = VALUE_I_VALID;
       yylval.node_t->iValue = atoi(yytext); 
@@ -255,8 +254,7 @@ NQUOTE [^']
       return(RBRAC);
 }
 
-[0-9]+"."[0-9]+  |
-"-"[0-9]+"."[0-9]+            {
+[0-9]+"."[0-9]+         {
                   yylval.node_t = newTokenNode(REALNUMBER,lineCount);
                   yylval.node_t->rValue = atof(yytext); 
                   yylval.node_t->valueValid = VALUE_R_VALID;

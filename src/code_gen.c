@@ -28,6 +28,7 @@ int scope_check_gen = 0;
 int while_scope = 0;
 int if_scope = 0;
 
+///// array not finished 
 void init_local_var(){
     int i;
     for( i =  SymbolTable.size-1 ; i >= 0 ; i--){
@@ -55,7 +56,7 @@ void init_local_var(){
         i++;
     }
 }
-
+////// array not finished
 void fill_param(struct param_list * param){
     struct param_list * tmp = param;
     int num = 1;
@@ -94,11 +95,23 @@ void gen_program_main(){
 
 /********** find symbol entry within function or procedure ***************/
 struct SymTableEntry  * findSymbol_in_function_procedure(char * s){
-    for(int i =  SymbolTable.size-1 ; i >= 0 ; i--){
+    int pos = 0;
+    for(pos = 0; pos < SymbolTable.size  ; pos++){
+        struct SymTableEntry * it = &SymbolTable.entries[pos];
+        if(strcmp(it->name, function_var) == 0 && it->level == 0){
+            break;
+                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            //return it;
+        }
+    }
+
+    for(int i =  pos+1 ; i < SymbolTable.size ; i++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
         if(it->level == 0)
             break;
         if(strcmp(s, it->name) == 0 && it->level <= 1){
+            if(strcmp(function_var , s)==0 && left == 0 )
+                break;
                 //printf("%d , %d\n" , it->level , SymbolTable.current_level);
             return it;
         }
@@ -143,18 +156,33 @@ void gen_program_end(){
     if(function_type == type_void)
         fprintf(fp, "\treturn\n");
     else if(function_type == type_int){
+        left = 1;
         struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+        left = 0;
         fprintf(fp , "\tiload %d\n" , var->var_num);
         fprintf(fp , "\tireturn\n");
-        *function_var = NULL;
+        //*function_var = NULL;
+        memset(function_var,0,20);
     }
     else if(function_type == type_real){
+        left = 1;
         struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+        left = 0;
         fprintf(fp , "\tfload %d\n" , var->var_num);
         fprintf(fp , "\tfreturn\n");
-        *function_var = NULL;
+        //*function_var = NULL;
+        memset(function_var,0,20);
     }
     //// string return 
+    else if(function_type == type_string){
+        left = 1;
+        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+        left = 0;
+        fprintf(fp , "\tsload %d\n" , var->var_num);
+        fprintf(fp , "\tsreturn\n");
+        //*function_var = NULL;
+        memset(function_var,0,20);
+    }
 	fprintf(fp, ".end method\n\n");
     function_type = type_void;
     return;
@@ -283,7 +311,7 @@ void travel_node(struct node * node){
                 fill_param(param);
             }
 
-            fprintf(fp , ")\n");
+            fprintf(fp , ")V\n");
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
             function_procedure_scope = 1; 
             break;
@@ -298,11 +326,13 @@ void travel_node(struct node * node){
                     return;
         ///////////// declaration ////////////////    
             else {
+        /************** local declaration ***********/
                 if(function_procedure_scope ==1){
                     function_procedure_scope = 0;
                     init_local_var();
                     return;
                 }
+        /*************** global declaration *************/        
                 struct node * check_declaration = node->child;
                 int check_type = 2;
                 int check_node = 1;
@@ -397,6 +427,9 @@ void travel_node(struct node * node){
                         ////////////////////
                         /// load parameter is not finished
                         ///////////////////
+                        if(node->child != NULL){
+                            travel_node(node->child);
+                        }
                         fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
                         if(entry->function->param != NULL){
                             fill_param(entry->function->param);
@@ -411,10 +444,16 @@ void travel_node(struct node * node){
                             fprintf(fp , ")V\n");
                     }
                     else if(entry->type == TypeProcedure){
-                    
+                        if(node->child != NULL){
+                            travel_node(node->child);
+                        }
+                        
                         fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
-                        if(entry->function->param != NULL){
-                            fill_param(entry->function->param);
+                        if(entry->function == NULL)
+                        printf("fuckleo is %s at level %d\n" , entry->name , entry->level);
+
+                        if(entry->procedure->param != NULL){
+                            fill_param(entry->procedure->param);
                         }
                             fprintf(fp , ")V\n");
                     }
@@ -549,6 +588,8 @@ void travel_node(struct node * node){
             right = 0;
             left =1;
             travel_node(child1);
+            right = 1;
+            left = 0;
             return;
         }
     }

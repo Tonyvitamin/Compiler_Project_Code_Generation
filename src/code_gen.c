@@ -9,9 +9,9 @@ int scope = 0;
 
 char function_var[20];
 
-int label_count = 0;
+int label_count = -1;
 int label_stack[1024];
-int stack_top = 0;
+int stack_top = -1;
 
 
 #define type_void 0
@@ -511,57 +511,133 @@ void travel_node(struct node * node){
                             return;
                         }
                     }
-                    /*case OP_LT: {
-                        if(child1->valueType == TypeString){
-                            printf("[Error ] wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                    case OP_LT: {
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tiflt Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
                     }
                     case OP_GT:{
-                        if(child1->valueType == TypeString){
-                            printf("[Error ]wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tifgt Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
                     }
                     case OP_EQ:{
-                        if(child1->valueType == TypeString){
-                            printf("[Error ] wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tifeq Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
                     }
                     case OP_NE:{
-                        if(child1->valueType == TypeString){
-                            printf("[Error ] wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tifne Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
                     }
                     case OP_GE:{
-                        if(child1->valueType == TypeString){
-                            printf("[Error ] wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tifge Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
                     }
                     case OP_LE:{
-                        if(child1->valueType == TypeString){
-                            printf("[Error ] wrong type at line %d\n" , node->lineCount);
-                            check = 0;
-                            return;
+                        label_count++;
+                        stack_top++;
+                        label_stack[stack_top]=label_count;
+                        if(child1->valueType == TypeInt){
+                            fprintf(fp , "\tisub\n");
                         }
-                    }*/
-                                /*NOT factor
-                                case OP_NOT:{
+                        else if(child1->valueType == TypeReal){
+                            fprintf(fp , "\tfcmpl\n");
+                        }
+                        fprintf(fp , "\tifle Ltrue_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_0\n");
+                        fprintf(fp , "\tgoto Lfalse_%d\n" , label_stack[stack_top]);
+                        fprintf(fp , "Ltrue_%d:\n" , label_stack[stack_top]);
+                        fprintf(fp , "\ticonst_1\n");
+                        fprintf(fp , "Lfalse_%d:\n" , label_stack[stack_top]);
+                        stack_top--;
+                    }
+                    /*NOT factor
+                    case OP_NOT:{
     
-                                }*/
+                    }*/
                 }
             }
             break;
         }
         case NODE_IF:{
+            travel_node(nthChild(1,node));
+            stack_top++;
+            label_count++;
+            label_stack[stack_top]=label_count;
+            fprintf(fp , "\tifeq Lfalse_%d\n" , label_stack[stack_top]);
+            fprintf(fp , "\tgoto Lexit_%d\nLfalse_%d:\n" , label_stack[stack_top] , label_stack[stack_top]);
+            travel_node(nthChild(2,node));
+            fprintf(fp , "Lexit_%d:\n" , label_stack[stack_top]);
+            travel_node(nthChild(3,node));
+            stack_top--;
             return;
         }
         case NODE_WHILE:{

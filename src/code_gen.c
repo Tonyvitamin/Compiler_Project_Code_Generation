@@ -89,6 +89,12 @@ void fill_param(struct param_list * param){
 void gen_program_main(){
     fprintf(fp , ".method public static main([Ljava/lang/String;)V\n");
     fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n\tinvokestatic foo/vinit()V\n");
+    fprintf(fp, "\tnew java/util/Scanner\n");
+	fprintf(fp, "\tdup\n");
+	fprintf(fp, "\tgetstatic java/lang/System/in Ljava/io/InputStream;\n");
+	fprintf(fp, "\tinvokespecial java/util/Scanner/<init>(Ljava/io/InputStream;)V\n");
+	fprintf(fp, "\tputstatic foo/_sc Ljava/util/Scanner;\n");
+	fprintf(fp, "\n");
     return;
 }
 
@@ -146,7 +152,7 @@ void gen_program_start(){
     printf("start\n");
     fprintf(fp , ".class public foo\n");
     fprintf(fp , ".super java/lang/Object\n\n");
-    //fprintf(fp, ".field public static _sc Ljava/util/Scanner;\n ");
+    fprintf(fp, ".field public static _sc Ljava/util/Scanner;\n ");
     return;
 }
 /********** generate end of xxx.j ***********/
@@ -1021,6 +1027,33 @@ void travel_node(struct node * node){
             return;
         }
         case NODE_READ:{
+
+            fprintf(fp, "\tgetstatic foo/_sc Ljava/util/Scanner;\n");
+            struct node * input = nthChild(1 , node);
+            struct SymTableEntry * entry;
+            if(scope_check_gen==1)
+                entry = findSymbol_in_main(input->string);
+            else 
+                entry = findSymbol_in_function_procedure(input->string);
+            //if(entry->level == 0){
+                if(entry->type == TypeInt){
+                    fprintf(fp , "\tinvokevirtual java/util/Scanner/nextInt()I\n");
+                    left=1;
+                    right=0;
+                    travel_node(input);
+                    left=0;
+                    right=1;
+                }
+                else if(entry->type == TypeReal){
+                    fprintf(fp , "\tinvokevirtual java/util/Scanner/nextFloat()F\n");
+                    left=1;
+                    right=0;
+                    travel_node(input);
+                    left=0;
+                    right=1;
+                }
+            //}
+
             return;
         }
         case NODE_WRITELN: {

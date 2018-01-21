@@ -38,6 +38,7 @@
 %token <node_t> notEQUAL 
 %token <node_t> STRING  
 %token <node_t> real INTEGER  begin string_v
+%token <node_t> READ WRITELN
 
 %type <node_t> prog identifier_list standard_type optional_var 
 %type <node_t> procedure_statement relop factor
@@ -225,6 +226,20 @@ statement : variable ASSIGNMENT expression {
             addChild($$ , $4);
             deleteNode($1);
             deleteNode($3);};
+    | READ LPAREN factor RPAREN{
+        $$ = newNode(NODE_READ , lineCount);
+        addChild($$ , $3);
+        deleteNode($1);
+        deleteNode($2);
+        deleteNode($4);
+    };
+    |WRITELN LPAREN factor RPAREN {
+        $$ = newNode(NODE_WRITELN , lineCount);
+        addChild($$ , $3);
+        deleteNode($1);
+        deleteNode($2);
+        deleteNode($4);
+    };
 	| lambda {$$ = newNode(NODE_LIST, lineCount);};
 
 

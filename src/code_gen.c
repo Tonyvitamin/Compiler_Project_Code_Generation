@@ -2,62 +2,170 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-extern int lineCount;
-extern FILE * fp;
-extern struct SymTable SymbolTable;
-int scope = 0;
-
-char function_var[20];
-
-int label_count = -1;
-int label_stack[1024];
-int stack_top = -1;
-
 
 #define type_void 0
 #define type_int 1
 #define type_real 2
-#define type_string 3
+#define type_nothing 4
 
+extern int lineCount;
+extern FILE * fp;
+extern struct SymTable SymbolTable;
+int scope = 0;
+char function_var[20];
+int label_count = -1;
+int label_stack[1024];
+int stack_top = -1;
+int main_end = 0;
 int left = 0 ;
-int right = 0;
 int flag = 0;
 int function_procedure_scope = 0;
 int function_type = 0;
-//int procedure_scope = 0;
 int scope_check_gen = 0;
-int while_scope = 0;
-int if_scope = 0;
+int function_procedure_check = 0;
+int param_num = 0;
 
-///// array not finished 
 void init_local_var(){
     int i;
-    for( i =  SymbolTable.size-1 ; i >= 0 ; i--){
+    for( i =  0 ; i < SymbolTable.size ; i++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
-        if(it->level == 0)
-            break;
-        if(strcmp(function_var, it->name) == 0 && it->level == 1){
-            break;
+            printf("%s f\n" , function_var);
+            printf("%s i\n" , it->name);
+        if(strcmp(function_var, it->name) == 0 ){
+            if(function_procedure_check == 1 && it->level == 1){
+                break;
+            }
+            else if(function_procedure_check == 2 && it->level == 0){
+                i++;
+                break;
+            }
         }
     }
-    while( i<SymbolTable.size && SymbolTable.entries[i].level == 1 ){
+    int num=0;
+    int fun_num=0;
+    
+    while( i < SymbolTable.size ){
         struct SymTableEntry * tmp = &SymbolTable.entries[i];
-        if(tmp->type == TypeInt){
-            fprintf(fp , "\tldc 0\n" );
-            fprintf(fp , "\tistore %d\n" , tmp->var_num);
+        if(function_procedure_check == 1){
+            if(strcmp(function_var , tmp->name) == 0 ){
+                for(int j=i+1;j<SymbolTable.size;j++,fun_num++){
+                        if(SymbolTable.entries[j].level==0)
+                            break;
+                    }
+                tmp->var_num=fun_num;  
+            }
+            else
+                tmp->var_num=num-1;
+            if(tmp->type == TypeInt && num > param_num){
+                fprintf(fp , "\tldc 0\n" );
+                fprintf(fp , "\tistore %d\n" , tmp->var_num);
+            }
+            else if(tmp->type == TypeReal && num > param_num) {
+                fprintf(fp , "\tldc 0.0\n");
+                fprintf(fp , "\tfstore %d\n" , tmp->var_num);
+            }
+            else if(tmp->type == TypeArray && num > param_num){
+                int dim=1;
+                struct array_descriptor *arr=tmp->array;
+                while(arr->type==TypeArray){
+                    dim++;
+                    arr=arr->next_array;
+                }
+                enum StdType type = arr->type;
+                arr=tmp->array;
+                struct array_descriptor *arr2=arr->next_array;
+                struct array_descriptor *arr3;
+                if(dim>=3)
+                    arr3=arr2->next_array;
+                for(int j=0;j<dim;j++){
+                    if(j==0){
+                        fprintf(fp , "\tbipush %d\n",arr->capacity+1);
+                    }
+                    else if(j==1){
+                        fprintf(fp , "\tbipush %d\n",arr2->capacity+1);
+                    }
+                    else if(j==2){
+                        fprintf(fp , "\tbipush %d\n",arr3->capacity+1);
+                    }
+                }
+                fprintf(fp , "\tmultianewarray ");
+                for(int j=0;j<dim;j++){
+                    fprintf(fp , "[");
+                }
+                
+                switch(type){
+                    case TypeInt:   
+                        fprintf(fp , "I ");
+                        break;
+                    case TypeReal:  
+                        fprintf(fp , "F ");
+                        break;
+                    default:
+                        break;
+                }
+                fprintf(fp , "%d\n" ,dim);
+                fprintf(fp , "\tastore %d\n",tmp->var_num);
+            }
         }
-        else if(tmp->type == TypeReal){
-            fprintf(fp , "\tldc 0.0\n");
-            fprintf(fp , "\tfstore %d\n" , tmp->var_num);
+        else if(function_procedure_check == 2){
+            if(SymbolTable.entries[i].level == 0 )
+                break;
+                tmp->var_num=num;
+            if(tmp->type == TypeInt && num >= param_num){
+                fprintf(fp , "\tldc 0\n" );
+                fprintf(fp , "\tistore %d\n" , tmp->var_num);
+            }
+            else if(tmp->type == TypeReal && num >= param_num) {
+                fprintf(fp , "\tldc 0.0\n");
+                fprintf(fp , "\tfstore %d\n" , tmp->var_num);
+            }
+            else if(tmp->type == TypeArray && num >= param_num){
+                int dim=1;
+                struct array_descriptor *arr=tmp->array;
+                while(arr->type==TypeArray){
+                    dim++;
+                    arr=arr->next_array;
+                }
+                enum StdType type = arr->type;
+                arr=tmp->array;
+                struct array_descriptor *arr2=arr->next_array;
+                struct array_descriptor *arr3;
+                if(dim>=3)
+                    arr3=arr2->next_array;
+                for(int j=0;j<dim;j++){
+                    if(j==0){
+                        fprintf(fp , "\tbipush %d\n",arr->capacity+1);
+                    }
+                    else if(j==1){
+                        fprintf(fp , "\tbipush %d\n",arr2->capacity+1);
+                    }
+                    else if(j==2){
+                        fprintf(fp , "\tbipush %d\n",arr3->capacity+1);
+                    }
+                }
+                fprintf(fp , "\tmultianewarray ");
+                for(int j=0;j<dim;j++){
+                    fprintf(fp , "[");
+                }
+                
+                switch(type){
+                    case TypeInt:   
+                        fprintf(fp , "I ");
+                        break;
+                    case TypeReal:  
+                        fprintf(fp , "F ");
+                        break;
+                    default:
+                        break;
+                }
+                fprintf(fp , "%d\n" ,dim);
+                fprintf(fp , "\tastore %d\n",tmp->var_num);
+            }
         }
-        else if(tmp->type == TypeString){
-            fprintf(fp , "\tldc 0\n");
-            fprintf(fp , "\tsstore %d\n" , tmp->var_num);
-        }
+        num++;
         i++;
     }
 }
-////// array not finished
 void fill_param(struct param_list * param){
     struct param_list * tmp = param;
     int num = 1;
@@ -73,62 +181,84 @@ void fill_param(struct param_list * param){
         }
         if(tmp->type == TypeInt)
             fprintf(fp , "I");
-        else if(tmp->type == TypeString)
-            fprintf(fp , "S");
         else if(tmp->type == TypeReal)
             fprintf(fp , "F");
         else if(tmp->type == TypeArray){
-            
+            int dim=1;
+            struct array_descriptor *arr=tmp->array;
+            while(arr->type == TypeArray){
+                dim++;
+                arr=arr->next_array;
+            }
+            enum StdType type = arr->type;
+            for(int j=0 ; j<dim ;j++){
+                fprintf(fp , "[");
+            }
+            switch(type){
+                case TypeInt:{
+                    fprintf(fp , "I");
+                    break;
+                }
+                case TypeReal:{
+                    fprintf(fp , "F");
+                    break;
+                }
+                default:
+                    break;
+            }
         }    
         tmp = param;
         num--;
     }
 }
-
-
 void gen_program_main(){
     fprintf(fp , ".method public static main([Ljava/lang/String;)V\n");
     fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n\tinvokestatic foo/vinit()V\n");
     fprintf(fp, "\tnew java/util/Scanner\n");
-	fprintf(fp, "\tdup\n");
-	fprintf(fp, "\tgetstatic java/lang/System/in Ljava/io/InputStream;\n");
-	fprintf(fp, "\tinvokespecial java/util/Scanner/<init>(Ljava/io/InputStream;)V\n");
-	fprintf(fp, "\tputstatic foo/_sc Ljava/util/Scanner;\n");
-	fprintf(fp, "\n");
+    fprintf(fp, "\tdup\n");
+    fprintf(fp, "\tgetstatic java/lang/System/in Ljava/io/InputStream;\n");
+    fprintf(fp, "\tinvokespecial java/util/Scanner/<init>(Ljava/io/InputStream;)V\n");
+    fprintf(fp, "\tputstatic foo/_sc Ljava/util/Scanner;\n");
+    fprintf(fp, "\n");
     return;
 }
-
-/******** no handle recursive case *********/
-
 /********** find symbol entry within function or procedure ***************/
 struct SymTableEntry  * findSymbol_in_function_procedure(char * s){
+    int num=0;
+    int funnum=0;
     int pos = 0;
     for(pos = 0; pos < SymbolTable.size  ; pos++){
         struct SymTableEntry * it = &SymbolTable.entries[pos];
         if(strcmp(it->name, function_var) == 0 && it->level == 0){
             break;
-                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
-            //return it;
         }
     }
-
-    for(int i =  pos+1 ; i < SymbolTable.size ; i++){
+    struct SymTableEntry * pro_fun_check = findSymbol_in_main(function_var);
+    for(int i =  pos+1 ; i < SymbolTable.size ; i++,num++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
         if(it->level == 0)
             break;
         if(strcmp(s, it->name) == 0 && it->level <= 1){
             if(strcmp(function_var , s)==0 && left == 0 )
                 break;
-                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
+            if(strcmp(function_var , s)==0){
+                for(int j=i+1;j<SymbolTable.size;j++,funnum++){
+                    if(SymbolTable.entries[j].level==0)
+                        break;
+                }
+                it->var_num = funnum;
+                return it;
+            }
+            if(pro_fun_check->type == TypeFunction)
+                it->var_num = num-1;
+            else 
+                it->var_num = num;
             return it;
         }
     }
     for(int i = 0 ; i < SymbolTable.size  ; i++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
-        if(it->level == 1)
-            break;
         if(strcmp(s, it->name) == 0 && it->level == 0){
-                //printf("%d , %d\n" , it->level , SymbolTable.current_level);
             return it;
         }
     }
@@ -139,76 +269,60 @@ struct SymTableEntry  * findSymbol_in_main(char * s){
     for(int i = 0 ; i < SymbolTable.size  ; i++){
         struct SymTableEntry * it = &SymbolTable.entries[i];
         if(strcmp(s, it->name) == 0 && it->level == 0){
-            printf("%d , %d\n" , it->level , SymbolTable.current_level);
             return it;
         }
     }
     return 0;
 }
-
-/// done ///
 /********** generate start of xxx.j *********/
 void gen_program_start(){
-    printf("start\n");
     fprintf(fp , ".class public foo\n");
     fprintf(fp , ".super java/lang/Object\n\n");
     fprintf(fp, ".field public static _sc Ljava/util/Scanner;\n ");
     return;
 }
 /********** generate end of xxx.j ***********/
-/*********
-string return type is not finished
-***********/
 void gen_program_end(){
-    if(function_type == type_void)
-        fprintf(fp, "\treturn\n");
-    else if(function_type == type_int){
-        left = 1;
-        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
-        left = 0;
-        fprintf(fp , "\tiload %d\n" , var->var_num);
-        fprintf(fp , "\tireturn\n");
-        //*function_var = NULL;
-        memset(function_var,0,20);
+    if(main_end == 0){
+        if(function_type == type_void){
+            fprintf(fp, "\treturn\n");
+            fprintf(fp, ".end method\n\n");
+            param_num = 0;
+        }
+        else if(function_type == type_int){
+            left = 1;
+            struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+            left = 0;
+            fprintf(fp , "\tiload %d\n" , var->var_num);
+            fprintf(fp , "\tireturn\n");
+            fprintf(fp, ".end method\n\n");
+            memset(function_var,0,20);
+            param_num = 0;
+        }
+        else if(function_type == type_real){
+            left = 1;
+            struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
+            left = 0;
+            fprintf(fp , "\tfload %d\n" , var->var_num);
+            fprintf(fp , "\tfreturn\n");
+            fprintf(fp, ".end method\n\n");
+            memset(function_var,0,20);
+            param_num = 0;
+        }
+        function_type = type_void;
     }
-    else if(function_type == type_real){
-        left = 1;
-        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
-        left = 0;
-        fprintf(fp , "\tfload %d\n" , var->var_num);
-        fprintf(fp , "\tfreturn\n");
-        //*function_var = NULL;
-        memset(function_var,0,20);
-    }
-    //// string return 
-    else if(function_type == type_string){
-        left = 1;
-        struct SymTableEntry * var = findSymbol_in_function_procedure(function_var);
-        left = 0;
-        fprintf(fp , "\tsload %d\n" , var->var_num);
-        fprintf(fp , "\tsreturn\n");
-        //*function_var = NULL;
-        memset(function_var,0,20);
-    }
-	fprintf(fp, ".end method\n\n");
-    function_type = type_void;
     return;
 }
 
-///// done ////
 /********* generate global variable *********/
 void gen_global_var(char * name , enum StdType type , int dim , enum StdType  array_type){
-    printf("global var\n");
-    if(type == TypeInt){/// int declaration
+    if(type == TypeInt){
 		fprintf(fp, ".field public static %s %s\n",name,"I");
     }
-    else if(type == TypeReal){/// real declaration
+    else if(type == TypeReal){
 		fprintf(fp, ".field public static %s %s\n",name,"F");
     }
-    else if(type == TypeString){/// string declaration
-		fprintf(fp, ".field public static %s %s\n",name,"S");
-    }
-    else { /// array declaration
+    else { 
         fprintf(fp, ".field public static %s ",name);
         for(int i = 0 ; i<dim ;i++){
             fprintf(fp,"%s", "[");
@@ -219,16 +333,10 @@ void gen_global_var(char * name , enum StdType type , int dim , enum StdType  ar
         else if(array_type == TypeReal){
             fprintf(fp , "%s\n" , "F");
         }
-        else {
-            fprintf(fp , "%s\n" , "S");
-        }
     }
 
 }
 /********* generate init function *********/
-/*********
-array init is not finished yet
-***********/
 void gen_vinit(){
     fprintf(fp , "\n.method public static vinit()V\n\t.limit locals 100\n\t.limit stack 100\n");
     for(int i = 0 ; i<SymbolTable.size ;i++){
@@ -242,10 +350,6 @@ void gen_vinit(){
             fprintf(fp , "\tldc 0.0\n");
             fprintf(fp , "\tputstatic foo/%s F\n" , SymbolTable.entries[i].name );
         }
-        else if(SymbolTable.entries[i].type == TypeString){
-            fprintf(fp , "\tsipush 0\n");
-            fprintf(fp , "\tputstatic foo/%s S\n" , SymbolTable.entries[i].name );
-        }
         else if(SymbolTable.entries[i].type == TypeArray){
             struct array_descriptor *temp=SymbolTable.entries[i].array;
             int dim=1;
@@ -254,7 +358,6 @@ void gen_vinit(){
                 temp=temp->next_array;
             }
             enum StdType type = temp->type;
-            printf("type is %d\n",type);
             temp=SymbolTable.entries[i].array;
             struct array_descriptor *temp2=temp->next_array;
             struct array_descriptor *temp3;
@@ -269,7 +372,6 @@ void gen_vinit(){
                     fprintf(fp , "\tbipush %d\n",temp3->capacity+1);
             }
             fprintf(fp , "\tmultianewarray ");
-            //printf("dim is %d\n",dim);
             for(int j=0;j<dim;j++){
                 fprintf(fp , "[");
             }
@@ -279,14 +381,10 @@ void gen_vinit(){
                     fprintf(fp , "I ");
                     break;
                 case TypeReal:  
-                    fprintf(fp , "R ");
+                    fprintf(fp , "F ");
                     break;
-                case TypeString:
-                    fprintf(fp , "S ");
+                default:
                     break;
-                default:        
-                    fprintf(fp , "E ");
-                    break; 
             }
             fprintf(fp , "%d\n" ,dim);
             fprintf(fp , "\tputstatic foo/%s ", SymbolTable.entries[i].name);
@@ -297,41 +395,33 @@ void gen_vinit(){
                     fprintf(fp , "I\n");
                     break;
                 case TypeReal:  
-                    fprintf(fp , "R\n");
+                    fprintf(fp , "F\n");
                     break;
-                case TypeString:
-                    fprintf(fp , "S\n");
-                    break;
-                default:        
-                    fprintf(fp , "E\n"); 
+                default:
                     break;
             }
         }
     }
 	fprintf(fp , "\treturn\n.end method\n\n");
-    ////// <init> handle
     fprintf(fp , ".method public <init>()V\n\taload_0\n\tinvokenonvirtual java/lang/Object/<init>()V\n\treturn\n.end method\n\n");
 }
 /********** DFS to create an java bytecode ***********/
 void travel_node(struct node * node){
 
-    /************* main() starts here ***********/
     if(node->lsibling->nodeType == NODE_SUB_DECLS){
         gen_program_main();
         scope_check_gen = 1; 
     }
-    printf("Here %d\n" ,node->nodeType );
+    printf("Node type is %d here\n" ,node->nodeType );
     switch(node->nodeType) {
         case NODE_SUB_DECLS:{
             gen_vinit();
             break;
         }
         case NODE_BEGIN:{
+            main_end++;
             break;
         }
-        /******************
-        parameter is not finished yet
-        ********************/
         case NODE_FUN_HEAD:{
             fprintf(fp , ".method public static ");
             struct node * function_name = nthChild(1 , node);
@@ -341,11 +431,8 @@ void travel_node(struct node * node){
             strcpy(function_var , function_name->string);
             if(parameter->nodeType != NODE_lambda){
                 struct SymTableEntry * function = findSymbol_in_main(function_name->string);
-
                 struct param_list * param = function->function->param;
                 fill_param(param);
-
-
             }
 
             if (type_name->nodeType==NODE_TYPE_INT){
@@ -356,12 +443,12 @@ void travel_node(struct node * node){
                 fprintf(fp , ")F\n");
                 function_type = type_real;
             }
-            else if (node->nodeType==NODE_TYPE_STRING){
-                fprintf(fp , ")S\n");
-                function_type = type_string;
+            else{
+                function_type = type_nothing;
             }
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
             function_procedure_scope = 1;
+            function_procedure_check = 1;
             break;
         }
         case NODE_PRO_HEAD:{
@@ -369,20 +456,24 @@ void travel_node(struct node * node){
             struct node * procedure_name = nthChild(1 , node);
             struct node * parameter = nthChild(2 , node);
             fprintf(fp , "%s(" , procedure_name->string);
+            strcpy(function_var , procedure_name->string);
 
             if(parameter->nodeType != NODE_lambda){
                 struct SymTableEntry * procedure = findSymbol_in_main(procedure_name->string);
-                struct param_list * param = procedure->function->param;
+                struct param_list * param = procedure->procedure->param;
                 fill_param(param);
             }
-
+            function_type = type_void;
             fprintf(fp , ")V\n");
             fprintf(fp , "\t.limit locals 100\n\t.limit stack 100\n");
             function_procedure_scope = 1; 
+            function_procedure_check = 2;
             break;
         }
         case NODE_END:{
+            main_end--;
             gen_program_end();
+            function_procedure_scope = 0;
             return;
         }
         case NODE_DECL:{
@@ -393,8 +484,49 @@ void travel_node(struct node * node){
             else {
         /************** local declaration ***********/
                 if(function_procedure_scope ==1){
-                    function_procedure_scope = 0;
-                    init_local_var();
+                    if(node->parent->nodeType==NODE_LIST){
+                        init_local_var();
+                    }
+                    else {
+                            struct node * check_declaration = node->child;
+                            int check_type = 2;
+                            int check_node = 1;
+                            do{
+                                    struct node *typeNode = nthChild(check_type, node);//node type
+                                    enum StdType valueType = StdtypeCheck(typeNode);
+                                    /********* Array variable declaration implement here******************/
+                                    if(valueType == TypeArray){
+                                        struct node * array_node = typeNode->child;
+                                        struct array_descriptor * array_desc_root = initArray(array_node);
+                                        struct node *idList = nthChild(check_node, node);
+                                        struct node *idNode = idList->child;
+                                        int dim = 1;
+                                        while(array_desc_root->type == TypeArray){
+                                            dim++;
+                                            array_desc_root=array_desc_root->next_array;
+                                        }
+                                        enum StdType array_type = array_desc_root->type;
+
+                                        do {
+                                            idNode = idNode->rsibling;
+                                            param_num++;
+                                        } while(idNode != idList->child);                          
+                                    }
+                                    /*********int , string , real variable declaration implement here***********/
+                                    else {
+                                        struct node *idList = nthChild(check_node, node);
+                                        struct node *idNode = idList->child;
+                                        do {
+                                            idNode = idNode->rsibling;
+                                            param_num++;
+                                        } while(idNode != idList->child);
+                                    }
+                                    check_declaration = typeNode->rsibling;
+                                    check_node+=2;
+                                    check_type+=2;
+                                }while(check_declaration != node->child);
+                                printf("parameter number is %d\n" ,param_num);
+                    }
                     return;
                 }
         /*************** global declaration *************/        
@@ -444,39 +576,12 @@ void travel_node(struct node * node){
                 entry = findSymbol_in_main(node->string);
             else 
                 entry = findSymbol_in_function_procedure(node->string);
-
             if(entry->level == 1){
                 if(left == 1){
                     if(entry->type == TypeInt)
                         fprintf(fp , "\tistore %d\n" , entry->var_num);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tfstore %d\n" , entry->var_num);
-                    else if(entry->type == TypeString)
-                        fprintf(fp , "\tsstore %d\n" , entry->var_num);
-                    ///// array not finished
-                    else if(entry->type == TypeArray){
-
-                    }
-                
-                }
-                else {
-                    if(entry->type == TypeInt)
-                        fprintf(fp , "\tiload %d\n" , entry->var_num);
-                    else if(entry->type == TypeReal)
-                        fprintf(fp , "\tfload %d\n" , entry->var_num);
-                    else if(entry->type == TypeString)
-                        fprintf(fp , "\tsload %d\n" , entry->var_num);
-                    ///// array not finished
-                }  
-            }
-            else {
-                if(left == 1){
-                    if(entry->type == TypeInt)
-                        fprintf(fp , "\tputstatic foo/%s I\n" , entry->name);
-                    else if(entry->type == TypeReal)
-                        fprintf(fp , "\tputstatic foo/%s F\n" , entry->name);
-                    else if(entry->type == TypeString)
-                        fprintf(fp , "\tputstatic foo/%s S\n" , entry->name);
                     else if(entry->type == TypeArray){
                         struct array_descriptor *temp=entry->array;
                         int dim=1;
@@ -485,7 +590,215 @@ void travel_node(struct node * node){
                             temp=temp->next_array;
                         }
                         enum StdType type = temp->type;
-                        //printf("type is %d\n",type);
+                        temp=entry->array;
+                        struct array_descriptor *temp2=temp->next_array;
+                        struct array_descriptor *temp3;
+                        if(dim>=3)
+                            temp3=temp2->next_array;
+                        if(flag == 0){
+                            struct node *child1=nthChild(1 , node);
+                            struct node *child12;
+                            struct node *child15;
+                            struct node *child18;
+                            switch(dim){
+                                case 1:{
+                                    child12 = nthChild(2 , child1);
+                                    break;
+                                }
+                                case 2:{
+                                    child12 = nthChild(2 , child1);
+                                    child15 = nthChild(5 , child1);
+                                    break; 
+                                }
+                                case 3:{
+                                    child12 = nthChild(2 , child1);
+                                    child15 = nthChild(5 , child1);
+                                    child18 = nthChild(8 , child1);
+                                    break;
+                                }
+                            }
+                            fprintf(fp , "\taload_%d\n",entry->var_num);
+                            for(int i=0 ; i<dim ; i++){
+                                if(i==0){
+                                    if(dim==1)
+                                        fprintf(fp , "\tldc %d\n" , child12->iValue);
+                                    else if(dim==2)
+                                        fprintf(fp , "\tldc %d\n" , child15->iValue);
+                                    else if(dim==3)
+                                        fprintf(fp , "\tldc %d\n" , child18->iValue);
+                                    fprintf(fp , "\tldc %d\n" , temp->array_begin);
+                                    fprintf(fp , "\tisub\n");
+                                    if(dim>1)
+                                        fprintf(fp , "\taaload\n");
+                                }
+                                else if(i==1){
+                                    if(dim==2)
+                                        fprintf(fp , "\tldc %d\n" , child12->iValue);
+                                    else if(dim==3)
+                                        fprintf(fp , "\tldc %d\n" , child15->iValue);
+                                    fprintf(fp , "\tldc %d\n" , temp2->array_begin);
+                                    fprintf(fp , "\tisub\n");
+                                    if(dim>2)
+                                        fprintf(fp , "\taaload\n");
+                                }
+                                else if(i==2){
+                                    fprintf(fp , "\tldc %d\n" , child12->iValue);
+                                    fprintf(fp , "\tldc %d\n" , temp3->array_begin);
+                                    fprintf(fp , "\tisub\n"); 
+                                }
+                            }
+                        }
+                        else{
+                            switch(type){
+                                case TypeInt:
+                                    fprintf(fp , "\tiastore\n");
+                                    break;
+                                case TypeReal:
+                                    fprintf(fp , "\tfastore\n");
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                
+                }
+                else {
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tiload %d\n" , entry->var_num);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tfload %d\n" , entry->var_num);
+                    else if(entry->type == TypeArray){
+                        struct node *child2 = nthChild(2 , node);
+                        struct array_descriptor *temp=entry->array;
+                        int dim=1;
+                        while(temp->type == TypeArray){
+                            dim++;
+                            temp=temp->next_array;
+                        }
+                        enum StdType type = temp->type;
+                        struct node *child22;
+                        struct node *child25;
+                        struct node *child28;
+                        switch(dim){
+                            case 1:{
+                                child22 = nthChild(2 , child2);
+                                break;
+                            }
+                            case 2:{
+                                child22 = nthChild(2 , child2);
+                                child25 = nthChild(5 , child2);
+                                break; 
+                            }
+                            case 3:{
+                                child22 = nthChild(2 , child2);
+                                child25 = nthChild(5 , child2);
+                                child28 = nthChild(8 , child2);
+                                break;
+                            }
+                        }
+                        temp=entry->array;
+                        struct array_descriptor *temp2=temp->next_array;
+                        struct array_descriptor *temp3;
+                        if(dim>=3)
+                            temp3=temp2->next_array;
+                        fprintf(fp , "\taload_%d\n",entry->var_num);
+                        for(int i=0 ; i<dim ; i++){
+                            if(i==0){
+                                switch(dim){
+                                    case 1:{
+                                        fprintf(fp , "\tldc %d\n" , child22->iValue);
+                                        break;
+                                    }
+                                    case 2:{
+                                        fprintf(fp , "\tldc %d\n" , child25->iValue);
+                                        break;
+                                    }
+                                    case 3:{
+                                        fprintf(fp , "\tldc %d\n" , child28->iValue);
+                                    }
+                                }
+                                fprintf(fp , "\tldc %d\n" , temp->array_begin);
+                                fprintf(fp , "\tisub\n");
+                                if(dim>1)
+                                    fprintf(fp , "\taaload\n");
+                                else{
+                                    switch(type){
+                                        case TypeInt:
+                                            fprintf(fp , "\tiaload\n");
+                                            break;
+                                        case TypeReal:
+                                            fprintf(fp , "\tfaload\n");
+                                            break;
+                                        case TypeString:
+                                            fprintf(fp , "\tsaload\n");
+                                            break;
+                                        default :
+                                            fprintf(fp , "\terror\n");
+                                            break;
+                                    }   
+                                }
+                            }
+                            else if(i==1){
+                                switch(dim){
+                                    case 2:{
+                                        fprintf(fp , "\tldc %d\n" , child22->iValue);
+                                        break;
+                                    }
+                                    case 3:{
+                                        fprintf(fp , "\tldc %d\n" , child25->iValue);
+                                    }
+                                }
+                                fprintf(fp , "\tldc %d\n" , temp2->array_begin);
+                                fprintf(fp , "\tisub\n");
+                                if(dim>2)
+                                    fprintf(fp , "\taaload\n");
+                                else{
+                                    switch(type){
+                                        case TypeInt:
+                                            fprintf(fp , "\tiaload\n");
+                                            break;
+                                        case TypeReal:
+                                            fprintf(fp , "\tfaload\n");
+                                            break;
+                                        default:
+                                            break;
+                                    }   
+                                }
+                            }
+                            else if(i==2){
+                                fprintf(fp , "\tldc %d\n" , child22->iValue);
+                                fprintf(fp , "\tldc %d\n" , temp3->array_begin);
+                                fprintf(fp , "\tisub\n");
+                                switch(type){
+                                    case TypeInt:
+                                        fprintf(fp , "\tiaload\n");
+                                        break;
+                                    case TypeReal:
+                                        fprintf(fp , "\tfaload\n");
+                                        break;
+                                    default:
+                                        break;
+                                }  
+                            }
+                        }
+                    }
+                }  
+            }
+            else {
+                if(left == 1){
+                    if(entry->type == TypeInt)
+                        fprintf(fp , "\tputstatic foo/%s I\n" , entry->name);
+                    else if(entry->type == TypeReal)
+                        fprintf(fp , "\tputstatic foo/%s F\n" , entry->name);
+                    else if(entry->type == TypeArray){
+                        struct array_descriptor *temp=entry->array;
+                        int dim=1;
+                        while(temp->type == TypeArray){
+                            dim++;
+                            temp=temp->next_array;
+                        }
+                        enum StdType type = temp->type;
                         temp=entry->array;
                         struct array_descriptor *temp2=temp->next_array;
                         struct array_descriptor *temp3;
@@ -514,7 +827,6 @@ void travel_node(struct node * node){
                                 }
                             }
                             fprintf(fp , "\tgetstatic foo/%s ",entry->name);
-                            //printf("dim is %d\n",dim);
                             for(int j=0;j<dim;j++){
                                 fprintf(fp , "[");
                             }
@@ -523,14 +835,10 @@ void travel_node(struct node * node){
                                     fprintf(fp , "I\n");
                                     break;
                                 case TypeReal:  
-                                    fprintf(fp , "R\n");
+                                    fprintf(fp , "F\n");
                                     break;
-                                case TypeString:
-                                    fprintf(fp , "S\n");
+                                default:
                                     break;
-                                default:        
-                                    fprintf(fp , "E\n");
-                                    break; 
                             }
                             for(int i=0 ; i<dim ; i++){
                                 if(i==0){
@@ -570,30 +878,18 @@ void travel_node(struct node * node){
                                 case TypeReal:
                                     fprintf(fp , "\tfastore\n");
                                     break;
-                                case TypeString:
-                                    fprintf(fp , "\tsastore\n");
-                                    break;
-                                default :
-                                    fprintf(fp , "error\n");
+                                default:
                                     break;
                             }
                         }
                     }
-                    ///// array  not finished
-                
                 }
                 else {
-                    //fprintf(fp , "getstatic java/lang/System/out Ljava/io/PrintStream;\n");
                     if(entry->type == TypeInt)
                         fprintf(fp , "\tgetstatic foo/%s I\n" , entry->name);
                     else if(entry->type == TypeReal)
                         fprintf(fp , "\tgetstatic foo/%s F\n" , entry->name);
-                    else if(entry->type == TypeString)
-                        fprintf(fp , "\tgetstatic foo/%s S\n" , entry->name);
                     else if(entry->type ==TypeFunction){
-                        ////////////////////
-                        /// load parameter is not finished
-                        ///////////////////
                         if(node->child != NULL){
                             travel_node(node->child);
                         }
@@ -605,8 +901,6 @@ void travel_node(struct node * node){
                             fprintf(fp , ")I\n");
                         else if(entry->function->type == TypeReal)
                             fprintf(fp , ")F\n");
-                        else if(entry->function->type == TypeString)
-                            fprintf(fp , ")S\n");
                         else 
                             fprintf(fp , ")V\n");
                     }
@@ -617,7 +911,6 @@ void travel_node(struct node * node){
                         
                         fprintf(fp , "\tinvokestatic foo/%s(" , entry->name);
                         if(entry->function == NULL)
-                        printf("fuckleo is %s at level %d\n" , entry->name , entry->level);
 
                         if(entry->procedure->param != NULL){
                             fill_param(entry->procedure->param);
@@ -628,14 +921,6 @@ void travel_node(struct node * node){
                         struct node *parent = node->parent;
                         struct node *child2 = nthChild(2 , parent);
                         struct node *child21=   nthChild(1,child2);
-                        /*struct node *child222=nthChild(5,child22);
-                        printf("nodetype is %d\n\n\n",child222->iValue);*/
-                        /*while(child2->child!=NULL){
-                            printf("travel\n\n\n");
-                            child2=child2->child;
-                        }
-                        travel_node(child2);
-                        printf("now value is : %d\n\n\n",child2->iValue);*/
                         struct array_descriptor *temp=entry->array;
                         int dim=1;
                         while(temp->type == TypeArray){
@@ -663,14 +948,12 @@ void travel_node(struct node * node){
                                 break;
                             }
                         }
-                        //printf("type is %d\n",type);
                         temp=entry->array;
                         struct array_descriptor *temp2=temp->next_array;
                         struct array_descriptor *temp3;
                         if(dim>=3)
                             temp3=temp2->next_array;
                         fprintf(fp , "\tgetstatic foo/%s ",entry->name);
-                        //printf("dim is %d\n",dim);
                         for(int j=0;j<dim;j++){
                             fprintf(fp , "[");
                         }
@@ -680,14 +963,10 @@ void travel_node(struct node * node){
                                 fprintf(fp , "I\n");
                                 break;
                             case TypeReal:  
-                                fprintf(fp , "R\n");
+                                fprintf(fp , "F\n");
                                 break;
-                            case TypeString:
-                                fprintf(fp , "S\n");
+                            default:
                                 break;
-                            default:        
-                                fprintf(fp , "E\n");
-                                break; 
                         }
                         for(int i=0 ; i<dim ; i++){
                             if(i==0){
@@ -716,11 +995,7 @@ void travel_node(struct node * node){
                                         case TypeReal:
                                             fprintf(fp , "\tfaload\n");
                                             break;
-                                        case TypeString:
-                                            fprintf(fp , "\tsaload\n");
-                                            break;
-                                        default :
-                                            fprintf(fp , "\terror\n");
+                                        default:
                                             break;
                                     }   
                                 }
@@ -747,11 +1022,7 @@ void travel_node(struct node * node){
                                         case TypeReal:
                                             fprintf(fp , "\tfaload\n");
                                             break;
-                                        case TypeString:
-                                            fprintf(fp , "\tsaload\n");
-                                            break;
-                                        default :
-                                            fprintf(fp , "\terror\n");
+                                        default:
                                             break;
                                     }   
                                 }
@@ -767,17 +1038,12 @@ void travel_node(struct node * node){
                                     case TypeReal:
                                         fprintf(fp , "\tfaload\n");
                                         break;
-                                    case TypeString:
-                                        fprintf(fp , "\tsaload\n");
-                                        break;
-                                    default :
-                                        fprintf(fp , "error\n");
-                                        break;
+                                    default:
+                                     break;
                                 }  
                             }
                         }
                     }
-                    ///// string  , array not finished
                 }  
             }
 
@@ -949,10 +1215,6 @@ void travel_node(struct node * node){
                         return;
 
                     }
-                    /*NOT factor
-                    case OP_NOT:{
-    
-                    }*/
                 }
             }
             break;
@@ -984,7 +1246,7 @@ void travel_node(struct node * node){
             return;
         }
         case NODE_INT:{
-            fprintf(fp , "\tsipush %d\n" , node->iValue);
+            fprintf(fp , "\tldc %d\n" , node->iValue);
             return;
         }
         case NODE_REAL:{
@@ -999,35 +1261,26 @@ void travel_node(struct node * node){
             struct node * child1 = nthChild(1 , node);
             struct node * child2 = nthChild(2 , node);
             if(child1->array==NULL){
-                right = 1;
                 left = 0;
                 travel_node(child2);
-                right = 0;
                 left =1;
                 travel_node(child1);
-                right = 1;
                 left = 0;
             }
             else{
-                printf("fuck leo is gay into array assignment!\n\n\n");
                 left=1;
-                right=0;
                 travel_node(child1);
                 left=0;
-                right=1;
                 travel_node(child2);
                 left=1;
-                right=0;
                 flag=1;
                 travel_node(child1);
                 left=0;
-                right=1;
                 flag=0;
             }
             return;
         }
         case NODE_READ:{
-
             fprintf(fp, "\tgetstatic foo/_sc Ljava/util/Scanner;\n");
             struct node * input = nthChild(1 , node);
             struct SymTableEntry * entry;
@@ -1035,25 +1288,18 @@ void travel_node(struct node * node){
                 entry = findSymbol_in_main(input->string);
             else 
                 entry = findSymbol_in_function_procedure(input->string);
-            //if(entry->level == 0){
-                if(entry->type == TypeInt){
-                    fprintf(fp , "\tinvokevirtual java/util/Scanner/nextInt()I\n");
-                    left=1;
-                    right=0;
-                    travel_node(input);
-                    left=0;
-                    right=1;
-                }
-                else if(entry->type == TypeReal){
-                    fprintf(fp , "\tinvokevirtual java/util/Scanner/nextFloat()F\n");
-                    left=1;
-                    right=0;
-                    travel_node(input);
-                    left=0;
-                    right=1;
-                }
-            //}
-
+            if(entry->type == TypeInt){
+                fprintf(fp , "\tinvokevirtual java/util/Scanner/nextInt()I\n");
+                left=1;
+                travel_node(input);
+                left=0;
+            }
+            else if(entry->type == TypeReal){
+                fprintf(fp , "\tinvokevirtual java/util/Scanner/nextFloat()F\n");
+                left=1;
+                travel_node(input);
+                left=0;
+            }
             return;
         }
         case NODE_WRITELN: {
@@ -1065,9 +1311,9 @@ void travel_node(struct node * node){
                 fprintf(fp, "\tinvokestatic java/lang/String/valueOf(F)Ljava/lang/String;\n");
 
             fprintf(fp , "\tinvokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+            return;
         }
     }
-    /* Default action for other nodes not listed in the switch-case */
     struct node *child = node->child;
     if(child != NULL) {
         do {

@@ -45,7 +45,7 @@
 %type <node_t> subprogram_declaration subprogram_declarations 
 %type <node_t> subprogram_head parameter_list expression
 %type <node_t> expression_list   arguments   declarations type
-%type <node_t> variable tail addop minusop mulop compound_statement optional_statements simple_expression 
+%type <node_t> variable tail addop mulop compound_statement optional_statements simple_expression 
 %type <node_t> statement statement_list term 
 %start prog
 %%
@@ -297,7 +297,7 @@ simple_expression : term {
             $$ = $2;
             addChild($$ , $1);
             addChild($$ , $3);};
-    | simple_expression minusop term{
+    | simple_expression MINUS term{
             $$ = newOpNode(OP_SUB, lineCount);
             addChild($$ , $1);
             addChild($$ , $3);
@@ -328,7 +328,7 @@ factor : IDENTIFIER tail { //call declared variable , function , procedure
         $$ = $1;
         $$->nodeType = NODE_INT;
              };
-    | minusop DIGSEQ {
+    | MINUS DIGSEQ {
             $2->nodeType = NODE_INT;
             $2->iValue=-$2->iValue;
             $$=$2;
@@ -338,7 +338,7 @@ factor : IDENTIFIER tail { //call declared variable , function , procedure
         $$ = $1;
         $$->nodeType = NODE_REAL;
                  };
-    | minusop REALNUMBER {
+    | MINUS REALNUMBER {
             $2->nodeType = NODE_REAL; 
             $2->rValue=-$2->rValue;
             $$=$2;
@@ -358,8 +358,7 @@ factor : IDENTIFIER tail { //call declared variable , function , procedure
 addop : PLUS {
                 $$ = newOpNode(OP_ADD, lineCount);
                 deleteNode($1);};
-minusop : MINUS {
-                };
+
 
 
 mulop : STAR {
@@ -431,7 +430,6 @@ int main(int argc, char** argv) {
         printf("********************************\n"
                "*      No semantic error!      *\n"
                "********************************\n");
-        printf("here\n");
         fp = fopen("foo.j" , "w");
         gen_program_start();
         travel_node(ASTRoot);

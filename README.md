@@ -1,7 +1,16 @@
 # Compiler_Project_Code_Generation
-code generation by Jasmin
+## Goal
 
-Step flow
+It is the last part of the project for Introduction to Compiler, which combines all previous part and do code gereration
+
+## Introduction to the compiler
+
+In this project, we have to implement a compiler for a language called Mini pascal. Mini Pascal is a simplified version of Pascal
+
+00Readme.txt is the detail for this homewo
+## code generation by Jasmin
+
+## Step flow
 1.With command flex Scanner.l
 Scanner.l -> lex.yy.c
 

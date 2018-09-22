@@ -1,7 +1,7 @@
 # Compiler_Project_Code_Generation
-:::info
-In this one, I cowork with swallen.
-:::
+
+**In this one, I cowork with swallen0409.**
+
 ## Goal
 
 It is the last part of the project for Introduction to Compiler, which combines all previous part and do code gereration
